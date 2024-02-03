@@ -1,0 +1,12 @@
+[package]
+name = "apeshit"
+version = "0.1.0"
+edition = "2021"
+authors = ["ash"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+exec = "0.3.1"
+fork = "0.1.23"
+rustix = { version = "0.38.31", features = ["fs"] }
