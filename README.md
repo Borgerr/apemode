@@ -7,13 +7,16 @@ Current features are limited to:
 - straight execution of programs
 - I/O redirection with files
 - I/O redirection between processes with pipes
+- changing working directory of shell
+- running list programs
 
 ### Future goals
 
 Future goals include
-lists, globbing, history,
-user customization (a la "dotfiles"),
+globbing, history,
+running background tasks,
 interrupt handling,
+user customization (a la "dotfiles"),
 and easy integration with systems.
 
 Beyond the virtues of having memory and I/O safety
