@@ -7,6 +7,6 @@ authors = ["ash"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rustix = { version = "0.38.31", features = ["fs", "stdio", "pipe"] }
+rustix = { version = "0.38.31", features = ["fs", "stdio", "pipe", "process"] }
 nix = { version = "0.27.1", features = ["process"] }
 exec = "0.3.1"

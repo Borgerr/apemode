@@ -6,6 +6,7 @@ use rustix::{
 
 #[derive(Debug)]
 pub enum ShellCmd<'a> {
+    Nothing,
     Exec {
         args: &'a [String],
     },
@@ -18,7 +19,9 @@ pub enum ShellCmd<'a> {
         left: Box<ShellCmd<'a>>,
         right: Box<ShellCmd<'a>>,
     },
-    Nothing,
+    Chdir {
+        path: String,
+    },
 }
 
 impl<'a> ShellCmd<'a> {
@@ -28,6 +31,13 @@ impl<'a> ShellCmd<'a> {
         // check for silly empty args
         if args == [""] {
             return Ok(Self::Nothing);
+        }
+
+        // check for `cd`
+        if args[0] == "cd" && args.len() == 2 {
+            return Ok(Self::Chdir {
+                path: args[1].clone(),
+            });
         }
 
         // find special symbols,

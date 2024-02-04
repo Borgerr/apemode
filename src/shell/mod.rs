@@ -1,10 +1,8 @@
-use nix::{
-    sys::wait::wait,
-    unistd::{fork, ForkResult},
-};
+use nix::unistd::{fork, ForkResult};
 use rustix::{
     fd::OwnedFd,
     pipe::pipe,
+    process::{chdir, wait, WaitOptions},
     stdio::{dup2_stdin, dup2_stdout},
 };
 use std::{
@@ -39,15 +37,7 @@ pub fn sh_loop() {
                 if let ShellCmd::Nothing = command {
                     continue;
                 }
-                match unsafe { fork() } {
-                    Ok(ForkResult::Parent { .. }) => {
-                        if let Err(errno) = wait() {
-                            println!("error when waiting for child process (Errno: {errno}");
-                        }
-                    }
-                    Ok(ForkResult::Child) => sh_launch(command),
-                    Err(errno) => println!("error when forking shell process (errno: {errno})"),
-                }
+                parent_prep(command);
             }
 
             Err(errno) => println!("error when parsing command (Errno: {errno}"),
@@ -57,13 +47,31 @@ pub fn sh_loop() {
     }
 }
 
+fn parent_prep(command: ShellCmd) {
+    if let ShellCmd::Chdir { path } = &command {
+        if let Err(errno) = chdir(path) {
+            println!("error when changing directory (Errno: {errno})");
+        }
+        return ();
+    }
+    match unsafe { fork() } {
+        Ok(ForkResult::Parent { .. }) => {
+            if let Err(errno) = wait(WaitOptions::CONTINUED) {
+                println!("error when waiting for child process (Errno: {errno}");
+            }
+        }
+        Ok(ForkResult::Child) => sh_launch(command),
+        Err(errno) => println!("error when forking shell process (errno: {errno})"),
+    }
+}
+
 /// Launching a command from a child process.
 /// Process exits or gives control to a different process after executing this function.
 fn sh_launch(cmd: ShellCmd) {
     match cmd {
         ShellCmd::Exec { args } => {
             let err = exec::execvp(args[0].clone(), args); // only returns if there's an error
-            println!("Error executing program {}:\n{}", args[0], err);
+            println!("error executing program {}:\n{}", args[0], err);
         }
         ShellCmd::Redir {
             command,
@@ -71,7 +79,7 @@ fn sh_launch(cmd: ShellCmd) {
             readmode,
         } => launch_redir(*command, descriptor, readmode),
         ShellCmd::Pipe { left, right } => launch_pipe(*left, *right),
-        ShellCmd::Nothing => (), // empty input
+        ShellCmd::Nothing | _ => (), // empty input or somehow Chdir got through the cracks
     }
 
     exit(0)
