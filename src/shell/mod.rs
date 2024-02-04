@@ -1,4 +1,7 @@
-use fork::{fork, Fork}; // https://docs.rs/fork/0.1.18/fork/
+use nix::{
+    sys::wait::wait,
+    unistd::{fork, ForkResult},
+};
 use rustix::{
     fd::OwnedFd,
     stdio::{dup2_stdin, dup2_stdout},
@@ -26,9 +29,13 @@ pub fn sh_loop() {
                 if let ShellCmd::Nothing = command {
                     continue;
                 }
-                match fork() {
-                    Ok(Fork::Parent(_)) => (),
-                    Ok(Fork::Child) => sh_launch(command),
+                match unsafe { fork() } {
+                    Ok(ForkResult::Parent { .. }) => {
+                        if let Err(errno) = wait() {
+                            println!("error when waiting for child process (Errno: {errno}");
+                        }
+                    }
+                    Ok(ForkResult::Child) => sh_launch(command),
                     Err(error) => println!("error when forking shell process (error: {error})"),
                 }
             }

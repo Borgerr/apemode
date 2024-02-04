@@ -1,5 +1,3 @@
-use std::io;
-
 mod shell;
 use shell::sh_loop;
 
