@@ -22,6 +22,10 @@ pub enum ShellCmd<'a> {
     Chdir {
         path: String,
     },
+    List {
+        left: Box<ShellCmd<'a>>,
+        right: Box<ShellCmd<'a>>,
+    },
 }
 
 impl<'a> ShellCmd<'a> {
@@ -43,7 +47,13 @@ impl<'a> ShellCmd<'a> {
         // find special symbols,
         // right now includes `|`, `>`, and `<`
         let args_iterator = args.into_iter();
-        if let Some(first_pipe) = args_iterator.clone().position(|x| x == "|") {
+        if let Some(first_colon) = args_iterator.clone().position(|x| x == ";") {
+            // lists have similar precedence to pipe, but just under in case of some pipe commands in a list
+            Ok(Self::List {
+                left: Box::new(Self::new(&args[0..first_colon])?),
+                right: Box::new(Self::new(&args[first_colon + 1..args.len()])?),
+            })
+        } else if let Some(first_pipe) = args_iterator.clone().position(|x| x == "|") {
             // Pipes have lowest precedence in current version
             // create and return a Pipe variant
             Ok(Self::Pipe {

@@ -47,21 +47,29 @@ pub fn sh_loop() {
     }
 }
 
+/// Some commands should change the parent process,
+/// or do something other than simply executing a child process.
 fn parent_prep(command: ShellCmd) {
-    if let ShellCmd::Chdir { path } = &command {
-        if let Err(errno) = chdir(path) {
-            println!("error when changing directory (Errno: {errno})");
-        }
-        return ();
-    }
-    match unsafe { fork() } {
-        Ok(ForkResult::Parent { .. }) => {
-            if let Err(errno) = wait(WaitOptions::CONTINUED) {
-                println!("error when waiting for child process (Errno: {errno}");
+    match command {
+        // chdir should change parent process
+        ShellCmd::Chdir { path } => {
+            if let Err(errno) = chdir(path) {
+                println!("error when changing directory (Errno: {errno})");
             }
         }
-        Ok(ForkResult::Child) => sh_launch(command),
-        Err(errno) => println!("error when forking shell process (errno: {errno})"),
+        ShellCmd::List { left, right } => {
+            parent_prep(*left);
+            parent_prep(*right);
+        }
+        _ => match unsafe { fork() } {
+            Ok(ForkResult::Parent { .. }) => {
+                if let Err(errno) = wait(WaitOptions::CONTINUED) {
+                    println!("error when waiting for child process (Errno: {errno}");
+                }
+            }
+            Ok(ForkResult::Child) => sh_launch(command),
+            Err(errno) => println!("error when forking shell process (errno: {errno})"),
+        },
     }
 }
 
@@ -79,7 +87,11 @@ fn sh_launch(cmd: ShellCmd) {
             readmode,
         } => launch_redir(*command, descriptor, readmode),
         ShellCmd::Pipe { left, right } => launch_pipe(*left, *right),
-        ShellCmd::Nothing | _ => (), // empty input or somehow Chdir got through the cracks
+        ShellCmd::Nothing => (), // empty input
+        _ => println!(
+            "shell error: variant {:?} got to a child process but shouldn't have",
+            cmd
+        ),
     }
 
     exit(0)
