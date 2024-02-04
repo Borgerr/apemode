@@ -33,12 +33,10 @@ pub fn sh_loop() {
         input.pop(); // get rid of newline
         let args_vec: Vec<String> = input.split(" ").map(|x| String::from(x)).collect();
         match ShellCmd::new(&args_vec[0..args_vec.len()]) {
-            Ok(command) => {
-                if let ShellCmd::Nothing = command {
-                    continue;
-                }
-                parent_prep(command);
-            }
+            Ok(command) => match command {
+                ShellCmd::Nothing => (),
+                _ => parent_prep(command),
+            },
 
             Err(errno) => println!("error when parsing command (Errno: {errno}"),
         };
