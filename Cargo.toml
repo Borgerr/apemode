@@ -1,5 +1,5 @@
 [package]
-name = "apeshit"
+name = "apemode"
 version = "0.1.0"
 edition = "2021"
 authors = ["ash"]
@@ -9,4 +9,4 @@ authors = ["ash"]
 [dependencies]
 exec = "0.3.1"
 fork = "0.1.23"
-rustix = { version = "0.38.31", features = ["fs"] }
+rustix = { version = "0.38.31", features = ["fs", "stdio"] }
