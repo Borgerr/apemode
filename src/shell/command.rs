@@ -40,14 +40,6 @@ impl<'a> ShellCmd<'a> {
                 left: Box::new(Self::new(&args[0..first_pipe])?),
                 right: Box::new(Self::new(&args[first_pipe + 1..args.len()])?),
             })
-        } else if let Some(first_larrow) = args_iterator.clone().position(|x| x == "<") {
-            // create and return a Redir variant with readmode on,
-            // files are always on the rhs
-            Ok(Self::Redir {
-                command: Box::new(Self::new(&args[0..first_larrow])?),
-                descriptor: open(args[first_larrow + 1].clone(), OFlags::RDONLY, Mode::RUSR)?,
-                readmode: true,
-            })
         } else if let Some(first_rarrow) = args_iterator.clone().position(|x| x == ">") {
             // create and return a Redir variant with readmode off,
             // files are always on the rhs
@@ -59,6 +51,14 @@ impl<'a> ShellCmd<'a> {
                     Mode::WUSR,
                 )?,
                 readmode: false,
+            })
+        } else if let Some(first_larrow) = args_iterator.clone().position(|x| x == "<") {
+            // create and return a Redir variant with readmode on,
+            // files are always on the rhs
+            Ok(Self::Redir {
+                command: Box::new(Self::new(&args[0..first_larrow])?),
+                descriptor: open(args[first_larrow + 1].clone(), OFlags::RDONLY, Mode::RUSR)?,
+                readmode: true,
             })
         } else {
             Ok(Self::Exec { args })
