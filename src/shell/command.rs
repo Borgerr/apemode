@@ -48,7 +48,7 @@ impl<'a> ShellCmd<'a> {
                 descriptor: open(
                     args[first_rarrow + 1].clone(),
                     OFlags::WRONLY.union(OFlags::CREATE),
-                    Mode::WUSR,
+                    Mode::RWXU,
                 )?,
                 readmode: false,
             })
