@@ -15,10 +15,11 @@ Future goals include
 user customization (a la "dotfiles"),
 interrupt handling,
 and easy integration with systems.
-Beyond the virtues of having I/O and memory safety
+
+Beyond the virtues of having memory and I/O safety
 with Rust and the crates involved with this project,
-I aim for `apemode` to be as lightweight, if not moreso,
-than peer shell programs.
+I aim for `apemode` to be as lightweight as, if not moreso than,
+peer shell programs.
 
 ##### Dependencies
 
