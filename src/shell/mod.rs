@@ -4,9 +4,13 @@ use nix::{
 };
 use rustix::{
     fd::OwnedFd,
+    pipe::pipe,
     stdio::{dup2_stdin, dup2_stdout},
 };
-use std::{io::stdin, process::exit};
+use std::{
+    io::{stdin, stdout, Write},
+    process::exit,
+};
 
 mod command;
 use command::ShellCmd;
@@ -17,7 +21,13 @@ use command::ShellCmd;
 pub fn sh_loop() {
     let stdin = stdin();
 
+    print!("> ");
     loop {
+        if let Err(_) = stdout().flush() {
+            // like a clogged toilet, sometimes flushing a second time will solve everything
+            continue;
+        }
+
         let mut input = String::new();
         if let Err(error) = stdin.read_line(&mut input) {
             println!("error when reading input (Error: {error})");
@@ -36,12 +46,14 @@ pub fn sh_loop() {
                         }
                     }
                     Ok(ForkResult::Child) => sh_launch(command),
-                    Err(error) => println!("error when forking shell process (error: {error})"),
+                    Err(errno) => println!("error when forking shell process (errno: {errno})"),
                 }
             }
 
             Err(errno) => println!("error when parsing command (Errno: {errno}"),
         };
+
+        print!("> "); // prevents stacks on itself if we retry flushing
     }
 }
 
@@ -58,7 +70,7 @@ fn sh_launch(cmd: ShellCmd) {
             descriptor,
             readmode,
         } => launch_redir(*command, descriptor, readmode),
-        ShellCmd::Pipe { left, right } => todo!(),
+        ShellCmd::Pipe { left, right } => launch_pipe(*left, *right),
         ShellCmd::Nothing => (), // empty input
     }
 
@@ -80,4 +92,51 @@ fn launch_redir(command: ShellCmd, descriptor: OwnedFd, readmode: bool) {
         }
     }
     sh_launch(command);
+}
+
+fn launch_pipe(left: ShellCmd, right: ShellCmd) {
+    match pipe() {
+        Ok(p) => {
+            // create write-end (left) process
+            match unsafe { fork() } {
+                Ok(ForkResult::Child) => {
+                    if let Err(errno) = dup2_stdout(p.1) {
+                        println!("error when changing file descriptors (Errno: {errno}");
+                        exit(-1);
+                    }
+                    drop(p.0);
+                    sh_launch(left);
+                    exit(-1); // exit if sh_launch somehow fails
+                }
+                Err(errno) => {
+                    println!("error when forking shell process (errno: {errno})");
+                    exit(-1);
+                }
+                _ => (),
+            }
+
+            match unsafe { fork() } {
+                Ok(ForkResult::Child) => {
+                    if let Err(errno) = dup2_stdin(p.0) {
+                        println!("error when changing file descriptors (Errno: {errno}");
+                        exit(-1);
+                    }
+                    drop(p.1);
+                    sh_launch(right);
+                    exit(-1); // exit if sh_launch somehow fails
+                }
+                Err(errno) => {
+                    println!("error when forking shell process (errno: {errno})");
+                    exit(-1);
+                }
+                _ => (),
+            }
+
+            exit(0);
+        }
+        Err(errno) => {
+            println!("error creating pipe (Errno: {errno}");
+            exit(-1);
+        }
+    }
 }
