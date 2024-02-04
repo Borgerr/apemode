@@ -11,7 +11,7 @@ Current features are limited to:
 ### Future goals
 
 Future goals include
-`cd`, globbing, history,
+lists, globbing, history,
 user customization (a la "dotfiles"),
 interrupt handling,
 and easy integration with systems.
