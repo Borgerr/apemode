@@ -1,5 +1,9 @@
 # apemode
 A rusty shell for *nix systems.
+This was a brief project during an operating systems class,
+abandoned in favor of assisting the
+[nushell](https://github.com/nushell/nushell)
+project.
 
 ### Features
 
